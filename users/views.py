@@ -1,5 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import filters, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
@@ -56,7 +56,15 @@ class UserDeleteView(generics.DestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
-@extend_schema(tags=["Платежи"])
+@extend_schema(
+    tags=["Платежи"],
+    description="Создать платёж за курс через Stripe. Возвращает ссылку на оплату.",
+    responses={
+        201: PaymentSerializer,
+        400: OpenApiResponse(description="Неверные данные запроса"),
+        500: OpenApiResponse(description="Ошибка Stripe"),
+    },
+)
 class PaymentCreateView(generics.CreateAPIView):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
@@ -79,7 +87,15 @@ class PaymentCreateView(generics.CreateAPIView):
             payment_link=session_url,
         )
 
-@extend_schema(tags=["Платежи"])
+@extend_schema(
+    tags=["Платежи"],
+    description="Получить актуальный статус платежа. Синхронизирует статус со Stripe.",
+    responses={
+        200: PaymentSerializer,
+        404: OpenApiResponse(description="Платёж не найден"),
+        500: OpenApiResponse(description="Ошибка Stripe"),
+    },
+)
 class PaymentStatusView(generics.RetrieveAPIView):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
