@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
 from .models import Course, Lesson
@@ -9,6 +10,8 @@ from django.shortcuts import get_object_or_404
 from .models import Subscription
 from .paginators import MaterialsPagination
 
+
+@extend_schema(tags=["Курсы"])
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     pagination_class = MaterialsPagination
@@ -34,6 +37,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
 
+@extend_schema(tags=["Уроки"])
 class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
     pagination_class = MaterialsPagination
@@ -55,6 +59,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
         serializer.save(owner=self.request.user)
 
 
+@extend_schema(tags=["Уроки"])
 class LessonRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
@@ -69,6 +74,19 @@ class LessonRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return [permission() for permission in self.permission_classes]
 
 
+@extend_schema(
+    tags=["Подписки"],
+    request=OpenApiParameter(name="course_id", type=int, location=OpenApiParameter.QUERY),
+    responses={200: {"type": "object", "properties": {"message": {"type": "string"}}}},
+    examples=[
+        OpenApiExample(
+            "Подписаться",
+            value={"course_id": 1},
+            request_only=True,
+        )
+    ],
+    description="Подписаться на курс или отписаться от него. Если подписка уже есть — она удаляется.",
+)
 class SubscriptionAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
