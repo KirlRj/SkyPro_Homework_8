@@ -27,3 +27,7 @@ def create_stripe_session(price_id: str) -> tuple[str, str]:
         cancel_url="http://localhost:8000/users/payments/cancel/",
     )
     return session.id, session.url
+
+def get_stripe_session_status(session_id: str) -> str:
+    session = stripe.checkout.Session.retrieve(session_id)
+    return session.status

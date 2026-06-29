@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from .filters import PaymentFilter
 from .models import Payment, User
 from .serializers import PaymentSerializer, UserRegisterSerializer, UserSerializer
-from .services import create_stripe_product, create_stripe_price, create_stripe_session
+from .services import create_stripe_product, create_stripe_price, create_stripe_session, get_stripe_session_status
 
 
 @extend_schema(tags=["Профиль"])
@@ -78,3 +78,17 @@ class PaymentCreateView(generics.CreateAPIView):
             session_id=session_id,
             payment_link=session_url,
         )
+
+@extend_schema(tags=["Платежи"])
+class PaymentStatusView(generics.RetrieveAPIView):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        payment = self.get_object()
+        if payment.session_id:
+            stripe_status = get_stripe_session_status(payment.session_id)
+            payment.status = stripe_status
+            payment.save(update_fields=["status"])
+        return super().retrieve(request, *args, **kwargs)
