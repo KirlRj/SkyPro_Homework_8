@@ -10,7 +10,9 @@ def create_stripe_product(name: str) -> str:
         product = stripe.Product.create(name=name)
         return product.id
     except stripe.error.StripeError as e:
-        raise APIException(detail=f"Ошибка Stripe при создании продукта: {e.user_message}")
+        raise APIException(
+            detail=f"Ошибка Stripe при создании продукта: {e.user_message}"
+        )
 
 
 def create_stripe_price(product_id: str, amount: int) -> str:
@@ -36,7 +38,9 @@ def create_stripe_session(price_id: str) -> tuple[str, str]:
         )
         return session.id, session.url
     except stripe.error.StripeError as e:
-        raise APIException(detail=f"Ошибка Stripe при создании сессии: {e.user_message}")
+        raise APIException(
+            detail=f"Ошибка Stripe при создании сессии: {e.user_message}"
+        )
 
 
 def get_stripe_session_status(session_id: str) -> str:
@@ -44,4 +48,6 @@ def get_stripe_session_status(session_id: str) -> str:
         session = stripe.checkout.Session.retrieve(session_id)
         return session.status
     except stripe.error.StripeError as e:
-        raise APIException(detail=f"Ошибка Stripe при получении статуса: {e.user_message}")
+        raise APIException(
+            detail=f"Ошибка Stripe при получении статуса: {e.user_message}"
+        )
