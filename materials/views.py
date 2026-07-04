@@ -10,6 +10,7 @@ from .models import Course, Lesson, Subscription
 from .paginators import MaterialsPagination
 from .permissions import IsModerator, IsOwner
 from .serializers import CourseSerializer, LessonSerializer
+from .tasks import send_course_update_email
 
 
 @extend_schema(tags=["Курсы"])
@@ -37,6 +38,15 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        send_course_update_email.delay(self.get_object().pk)
+        return response
+
+    def partial_update(self, request, *args, **kwargs):
+        response = super().partial_update(request, *args, **kwargs)
+        send_course_update_email.delay(self.get_object().pk)
+        return response
 
 @extend_schema(tags=["Уроки"])
 class LessonListCreateView(generics.ListCreateAPIView):
