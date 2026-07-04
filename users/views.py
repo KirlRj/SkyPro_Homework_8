@@ -1,12 +1,17 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import filters, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from .filters import PaymentFilter
 from .models import Payment, User
-from .serializers import PaymentSerializer, UserRegisterSerializer, UserSerializer
+from .serializers import (PaymentSerializer, UserRegisterSerializer,
+                          UserSerializer)
+from .services import (create_stripe_price, create_stripe_product,
+                       create_stripe_session, get_stripe_session_status)
 
 
+@extend_schema(tags=["Профиль"])
 class UserRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -16,6 +21,7 @@ class UserRetrieveUpdateView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
+@extend_schema(tags=["Платежи"])
 class PaymentListView(generics.ListAPIView):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
@@ -25,25 +31,85 @@ class PaymentListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
 
+@extend_schema(tags=["Пользователи"])
 class UserRegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
 
 
+@extend_schema(tags=["Пользователи"])
 class UserListView(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
 
+@extend_schema(tags=["Пользователи"])
 class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
 
+@extend_schema(tags=["Пользователи"])
 class UserDeleteView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+
+@extend_schema(
+    tags=["Платежи"],
+    description="Создать платёж за курс через Stripe. Возвращает ссылку на оплату.",
+    responses={
+        201: PaymentSerializer,
+        400: OpenApiResponse(description="Неверные данные запроса"),
+        500: OpenApiResponse(description="Ошибка Stripe"),
+    },
+)
+class PaymentCreateView(generics.CreateAPIView):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        from materials.models import Course
+
+        course_id = self.request.data.get("paid_course")
+        course = Course.objects.get(pk=course_id)
+        amount = self.request.data.get("amount")
+
+        product_id = create_stripe_product(course.title)
+        price_id = create_stripe_price(product_id, int(amount))
+        session_id, session_url = create_stripe_session(price_id)
+
+        serializer.save(
+            user=self.request.user,
+            payment_method=Payment.TRANSFER,
+            session_id=session_id,
+            payment_link=session_url,
+        )
+
+
+@extend_schema(
+    tags=["Платежи"],
+    description="Получить актуальный статус платежа. Синхронизирует статус со Stripe.",
+    responses={
+        200: PaymentSerializer,
+        404: OpenApiResponse(description="Платёж не найден"),
+        500: OpenApiResponse(description="Ошибка Stripe"),
+    },
+)
+class PaymentStatusView(generics.RetrieveAPIView):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        payment = self.get_object()
+        if payment.session_id:
+            stripe_status = get_stripe_session_status(payment.session_id)
+            payment.status = stripe_status
+            payment.save(update_fields=["status"])
+        return super().retrieve(request, *args, **kwargs)

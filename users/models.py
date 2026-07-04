@@ -1,9 +1,6 @@
 from django.conf import settings
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager,
-    PermissionsMixin,
-)
+from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
+                                        PermissionsMixin)
 from django.db import models
 
 
@@ -56,7 +53,15 @@ class Payment(models.Model):
         (CASH, "Наличные"),
         (TRANSFER, "Перевод на счет"),
     ]
+    STATUS_PENDING = "pending"
+    STATUS_COMPLETE = "complete"
+    STATUS_EXPIRED = "expired"
 
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Ожидает оплаты"),
+        (STATUS_COMPLETE, "Оплачен"),
+        (STATUS_EXPIRED, "Истёк"),
+    ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Пользователь"
     )
@@ -80,6 +85,14 @@ class Payment(models.Model):
     )
     payment_method = models.CharField(
         max_length=20, choices=PAYMENT_METHOD_CHOICES, verbose_name="Способ оплаты"
+    )
+    session_id = models.CharField(max_length=255, blank=True, null=True)
+    payment_link = models.URLField(max_length=800, blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        verbose_name="Статус оплаты",
     )
 
     def __str__(self):

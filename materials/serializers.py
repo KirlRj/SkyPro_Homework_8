@@ -3,11 +3,12 @@ from rest_framework import serializers
 from .models import Course, Lesson, Subscription
 from .validators import YouTubeLinkValidator
 
+
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = "__all__"
-        validators = [YouTubeLinkValidator(field='video_link')]
+        validators = [YouTubeLinkValidator(field="video_link")]
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -24,7 +25,7 @@ class CourseSerializer(serializers.ModelSerializer):
         return obj.lessons.count()
 
     def get_is_subscribed(self, obj):
-        user = self.context['request'].user
+        user = self.context["request"].user
         if user.is_authenticated:
             return Subscription.objects.filter(user=user, course=obj).exists()
         return False
