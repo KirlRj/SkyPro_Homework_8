@@ -155,3 +155,25 @@ SIMPLE_JWT = {
 }
 
 STRIPE_API_KEY = os.getenv("STRIPE_API_KEY")
+
+CELERY_BROKER_URL = os.getenv("REDIS_URL")
+CELERY_RESULT_BACKEND = os.getenv("REDIS_URL")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+
+INSTALLED_APPS += ["django_celery_beat"]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER')
+
+CELERY_BEAT_SCHEDULE = {
+    "deactivate_inactive_users": {
+        "task": "users.tasks.deactivate_inactive_users",
+        "schedule": timedelta(days=1),  # запускать раз в день
+    },
+}

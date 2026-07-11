@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
                                    extend_schema)
 from rest_framework import generics, viewsets
@@ -10,6 +11,7 @@ from .models import Course, Lesson, Subscription
 from .paginators import MaterialsPagination
 from .permissions import IsModerator, IsOwner
 from .serializers import CourseSerializer, LessonSerializer
+from .tasks import send_course_update_notification
 
 
 @extend_schema(tags=["Курсы"])
@@ -37,6 +39,12 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def perform_update(self, serializer):
+        course = serializer.save()
+        if course.updated_at:
+            time_since_update = timezone.now() - course.updated_at
+            if time_since_update.total_seconds() > 4 * 3600:
+                send_course_update_notification.delay(course.id)
 
 @extend_schema(tags=["Уроки"])
 class LessonListCreateView(generics.ListCreateAPIView):
