@@ -135,8 +135,3 @@ class SubscriptionTestCase(APITestCase):
         self.assertFalse(
             Subscription.objects.filter(user=self.user, course=self.course).exists()
         )
-
-
-from django.test import TestCase
-
-# Create your tests here.

@@ -46,6 +46,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             if time_since_update.total_seconds() > 4 * 3600:
                 send_course_update_notification.delay(course.id)
 
+
 @extend_schema(tags=["Уроки"])
 class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
