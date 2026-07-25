@@ -1,5 +1,4 @@
 from celery import shared_task
-from django.utils import timezone
 from django.core.mail import send_mail
 
 from materials.models import Course, Subscription

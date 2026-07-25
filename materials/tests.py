@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from .models import Course, Lesson, Subscription
+from users.models import User
 
 
 class LessonTestCase(APITestCase):
@@ -134,8 +135,3 @@ class SubscriptionTestCase(APITestCase):
         self.assertFalse(
             Subscription.objects.filter(user=self.user, course=self.course).exists()
         )
-
-
-from django.test import TestCase
-
-# Create your tests here.
