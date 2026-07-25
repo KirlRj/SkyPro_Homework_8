@@ -1,11 +1,14 @@
 name: CI/CD
 
 on:
-
   push:
     branches:
       - main
       - feature_34.2
+  pull_request:
+    branches:
+      - main
+      - develop
 
 jobs:
   test:
@@ -43,6 +46,7 @@ jobs:
       EMAIL_HOST_PASSWORD: testpass
       EMAIL_HOST: smtp.gmail.com
       EMAIL_PORT: 587
+      SECRET_KEY: test-secret-key
 
     steps:
       - uses: actions/checkout@v4
@@ -53,15 +57,23 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt flake8
+
+      - name: Lint
+        run: flake8 config users materials
 
       - name: Run tests
-        run: |
-          python manage.py test
+        run: python manage.py test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker images
+        run: docker compose build
 
   deploy:
-    needs: test
+    needs: [test, build]
     runs-on: ubuntu-latest
 
     steps:
